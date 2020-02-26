@@ -41,7 +41,7 @@ def get_weather(zip_code, fahrenheit, celsius):
 
         # args are port as a str and baud rate
         arduino = serial.Serial(PORT, 115200)
-        time.wait(1)
+        time.wait(2) # allow the arduino to listen on the port
         arduino.write("{}\n".format(int_temp))
 
     except Exception as e:
