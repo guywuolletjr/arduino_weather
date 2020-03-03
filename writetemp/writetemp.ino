@@ -1,18 +1,18 @@
-/* LED array test code
+/* Code to display a given temperature
  *
- * Reads (x,y) co-ordinates from the Serial Monitor and toggles the state of
- * the LED at that co-ordinate. The co-ordinates are specified as "x y", e.g.
- * "1 2", followed by a newline. Invalid co-ordinates are rejected.
- *
- * You need to fill in all the places marked TODO.
- *
+ * Reads in the temperature from the Serial Monitor and shows that number
+ * on the LED display. The range of temperatures that can be shown are -99 to 99.
+ * The top-left LED indicates if the temperature is positive or negative; if that
+ * LED is on, then the temperature displayed is negative. A sad face will be shown
+ * on the LED display for temperatures above 99 or below -99.
+ * *
  * == Setting up the Serial Monitor ==
  * The Serial Monitor must be configured (bottom-right corner of the screen) as:
  *   - Newline (for the line ending)
  *   - Baud rate 115200
  *
  * ENGR 40M
- * July 2018
+ * February 2020
  */
 
 // Arrays of pin numbers. Fill these in with the pins to which you connected
@@ -21,9 +21,8 @@ const byte ANODE_PINS[8] = {13, 12, 11, 10, 9, 8, 7, 6};
 const byte CATHODE_PINS[8] = {A3, A2, A1, A0, 5, 4, 3, 2};
 
 void setup() {
-  // TODO: configure all anode (+) and cathode (-) wires to outputs
-  // TODO: turn "off" all the LEDs
-  // Hint: You did the same thing in everylight.ino.
+  // Configure all anode (+) and cathode (-) wires to outputs
+  // Turn "off" all the LEDs
   for (byte i = 0; i < 8; i++) {
     pinMode(ANODE_PINS[i], OUTPUT);
     pinMode(CATHODE_PINS[i], OUTPUT);
@@ -48,8 +47,7 @@ void setup() {
  * again, so it needs to be called continuously for LEDs to be on.
  */
 void display(byte pattern[8][8]) {
-  // TODO: You need to fill in this function.
-  // Here's some suggested pseudocode:
+  // Pseudocode for this display function:
   //   for each anode (+/row) wire
   //     for each cathode (-/column) wire
   //       look up in pattern whether this LED should be on or off
@@ -75,6 +73,11 @@ void display(byte pattern[8][8]) {
   }
 }
 
+/* Function: handleOverHundred
+ * -----------------
+ * Creates the sad face pattern to show on the LED display when the absolute 
+ * value of the temperature is greater than or equal to a hundred
+ */
 void handleOverHundred(byte (& pattern) [8][8]) {
     static byte newAddition[8][8] = {
                     {0,0,0,0,0,0,0,0},
@@ -92,6 +95,11 @@ void handleOverHundred(byte (& pattern) [8][8]) {
     }
 }
 
+/* Function: placeFirstNumberInPattern
+ * -----------------
+ * Copies the matrix for one digit (newAddition) into the appropriate spot on the
+ * pattern for the LED display, specifically the first spot or the tens place
+ */
 void placeFirstNumberInPattern(byte newAddition[8][4], byte (& pattern) [8][8]) {
     for (byte i = 0; i < 8; i++) {
       for (byte j = 0; j < 4; j++) {
@@ -100,6 +108,11 @@ void placeFirstNumberInPattern(byte newAddition[8][4], byte (& pattern) [8][8]) 
     }
 }
 
+/* Function: placeSecondNumberInPattern
+ * -----------------
+ * Copies the matrix for one digit (newAddition) into the appropriate spot on the
+ * pattern for the LED display, specifically the second spot or the ones place
+ */
 void placeSecondNumberInPattern(byte newAddition[8][4], byte (& pattern) [8][8]) {
     for (byte i = 0; i < 8; i++) {
       for (byte j = 4; j < 8; j++) {
@@ -108,6 +121,11 @@ void placeSecondNumberInPattern(byte newAddition[8][4], byte (& pattern) [8][8])
     }
 }
 
+/* Function: placeNumberInPattern
+ * -----------------
+ * Depending on the value of the first boolean, call the appropriate function to copy the 
+ * matrix for one digit (newAddition) into the appropriate spot on the pattern for the LED display 
+ */
 void placeNumberInPattern(byte newAddition[8][4], bool first, byte (& pattern) [8][8]) {
   if (first) {
     placeFirstNumberInPattern(newAddition, pattern);
@@ -117,6 +135,11 @@ void placeNumberInPattern(byte newAddition[8][4], bool first, byte (& pattern) [
   }
 }
 
+/* Function: getPattern
+ * -----------------
+ * Get and place the correct manually-created pattern for the digit that we want to show
+ * on the LED display
+ */
 void getPattern(byte digit, bool first, byte (& pattern) [8][8]) {
   if (digit == 0) {
     static byte newAddition[8][4] = {
@@ -238,6 +261,7 @@ void getPattern(byte digit, bool first, byte (& pattern) [8][8]) {
                     {0,0,0,1} };
     placeNumberInPattern(newAddition, first, pattern);
   }
+  // Check that the correct pattern is printed
   for (byte i = 0; i < 8; i++) {
     for (byte j = 0; j < 8; j++) {
       Serial.print(pattern[i][j]);
@@ -264,29 +288,28 @@ void loop() {
       return;
     }
 
-    // Print to Serial Monitor to give feedback about input
-    sprintf(message, "A weather of %d degrees F was inputted.", temp);
+    // Print a message to Serial Monitor to state what the input was
+    sprintf(message, "A weather of %d degrees was inputted.", temp);
     Serial.println(message);
-
-    Serial.println(temp);
+    
     if (temp >= 100 || temp <= -100) {
+      // Handle the case where the inputted temperature is greater than or equal to 100
+      // or less than or equal to -100
       handleOverHundred(ledOn);
-      Serial.println("HERE");
     }
     else {
+      // Otherwise get the numbers and patterns that should be in the tens and ones spots
       tens_val = abs(temp) / 10;
       ones_val = abs(temp) % 10;
-      Serial.println(tens_val);
-      Serial.println(ones_val);
       getPattern(tens_val, true, ledOn);
       getPattern(ones_val, false, ledOn);
+      // Turn on the indictor LED (top-left corner) if the temperature is negative
       if (temp < 0) {
         ledOn[0][0] = 1;
-        Serial.println("NEG");
       }
     }
   }
 
-  // This function gets called every loop
+  // Display the final pattern on the LED display
    display(ledOn);
 }
